@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui.components
+package com.castIRL.ui.components
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope

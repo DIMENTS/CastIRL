@@ -1,11 +1,12 @@
-package com.signalscreencaster.util
+package com.castIRL.util
 
-import com.signalscreencaster.data.model.ConnectionConfig
+import com.castIRL.data.model.ConnectionConfig
 
 object SrtUrlBuilder {
     fun build(config: ConnectionConfig): String {
         val params = buildList {
-            if (config.srtLatencyUs != 120_000) add("latency=${config.srtLatencyUs}")
+            if (config.srtStreamId.isNotBlank()) add("streamid=${config.srtStreamId}")
+            if (config.srtLatencyMs != 120) add("latency=${config.srtLatencyMs}")
             if (config.srtPassphrase.isNotBlank()) {
                 add("passphrase=${config.srtPassphrase}")
                 add("pbkeylen=${config.srtPbkeylen}")

@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui
+package com.castIRL.ui
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -6,8 +6,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
-import com.signalscreencaster.ui.navigation.AppNavGraph
-import com.signalscreencaster.ui.theme.SignalTheme
+import com.castIRL.ui.navigation.AppNavGraph
+import com.castIRL.ui.theme.SignalTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint

@@ -1,4 +1,4 @@
-package com.signalscreencaster.util
+package com.castIRL.util
 
 object FormatUtil {
     fun formatBitrate(bps: Long): String = when {

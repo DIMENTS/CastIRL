@@ -1,17 +1,14 @@
-package com.signalscreencaster.ui.settings
+package com.castIRL.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.signalscreencaster.data.model.AudioConfig
-import com.signalscreencaster.data.model.AudioSourcePref
-import com.signalscreencaster.data.model.BehaviorConfig
-import com.signalscreencaster.data.model.ConnectionConfig
-import com.signalscreencaster.data.model.Protocol
-import com.signalscreencaster.data.model.StreamProfile
-import com.signalscreencaster.data.model.VideoCodecPref
-import com.signalscreencaster.data.model.VideoConfig
-import com.signalscreencaster.data.repository.SettingsRepository
-import com.signalscreencaster.util.CodecChecker
+import com.castIRL.data.model.AudioConfig
+import com.castIRL.data.model.BehaviorConfig
+import com.castIRL.data.model.ConnectionConfig
+import com.castIRL.data.model.StreamProfile
+import com.castIRL.data.model.VideoConfig
+import com.castIRL.data.repository.SettingsRepository
+import com.castIRL.util.CodecChecker
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -25,35 +22,35 @@ class SettingsViewModel @Inject constructor(
 ) : ViewModel() {
 
     val profile: StateFlow<StreamProfile> = settingsRepo.activeProfile
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), StreamProfile())
+        .stateIn(viewModelScope, SharingStarted.Eagerly, StreamProfile())
 
     val availableCodecs = CodecChecker.availableVideoCodecs()
 
+    // Each update reads + writes atomically inside DataStore.edit so concurrent
+    // saves (e.g. multiple onFocusLost callbacks firing at once) never overwrite
+    // each other's changes.
+
     fun updateConnection(block: ConnectionConfig.() -> ConnectionConfig) {
         viewModelScope.launch {
-            val current = profile.value
-            settingsRepo.save(current.copy(connection = block(current.connection)))
+            settingsRepo.updateProfile { copy(connection = block(connection)) }
         }
     }
 
     fun updateVideo(block: VideoConfig.() -> VideoConfig) {
         viewModelScope.launch {
-            val current = profile.value
-            settingsRepo.save(current.copy(video = block(current.video)))
+            settingsRepo.updateProfile { copy(video = block(video)) }
         }
     }
 
     fun updateAudio(block: AudioConfig.() -> AudioConfig) {
         viewModelScope.launch {
-            val current = profile.value
-            settingsRepo.save(current.copy(audio = block(current.audio)))
+            settingsRepo.updateProfile { copy(audio = block(audio)) }
         }
     }
 
     fun updateBehavior(block: BehaviorConfig.() -> BehaviorConfig) {
         viewModelScope.launch {
-            val current = profile.value
-            settingsRepo.save(current.copy(behavior = block(current.behavior)))
+            settingsRepo.updateProfile { copy(behavior = block(behavior)) }
         }
     }
 }

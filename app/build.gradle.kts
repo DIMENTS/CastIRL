@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-    namespace   = "com.signalscreencaster"
+    namespace   = "com.castIRL"
     compileSdk  = 35
 
     defaultConfig {
-        applicationId = "com.signalscreencaster"
+        applicationId = "com.castIRL"
         minSdk        = 21
         targetSdk     = 35
         versionCode   = 1
@@ -33,10 +33,12 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += listOf("-Xskip-metadata-version-check")
     }
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     packaging {

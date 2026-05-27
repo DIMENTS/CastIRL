@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui.theme
+package com.castIRL.ui.theme
 
 import android.os.Build
 import androidx.compose.material3.MaterialTheme

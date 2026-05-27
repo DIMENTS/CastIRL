@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui.home
+package com.castIRL.ui.home
 
 import android.content.ComponentName
 import android.content.Context
@@ -7,11 +7,11 @@ import android.content.ServiceConnection
 import android.os.IBinder
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.signalscreencaster.data.model.StreamProfile
-import com.signalscreencaster.data.repository.SettingsRepository
-import com.signalscreencaster.service.StreamingService
-import com.signalscreencaster.streaming.ConnectionState
-import com.signalscreencaster.streaming.StreamStats
+import com.castIRL.data.model.StreamProfile
+import com.castIRL.data.repository.SettingsRepository
+import com.castIRL.service.StreamingService
+import com.castIRL.streaming.ConnectionState
+import com.castIRL.streaming.StreamStats
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -75,23 +75,37 @@ class HomeViewModel @Inject constructor(
         _isServiceReady.value = false
     }
 
-    fun startForegroundService() {
+    /**
+     * Called after RESULT_OK from the MediaProjection consent dialog.
+     * Starts the service as foreground (required for process lifetime) and
+     * delegates the actual session start — including startForeground() — to the
+     * service so it happens after user consent (API 34 requirement).
+     */
+    fun startStreamingSession(resultCode: Int, data: Intent, profile: StreamProfile) {
         context.startForegroundService(Intent(context, StreamingService::class.java))
-    }
-
-    fun startStream(profile: StreamProfile) {
-        service?.startStream(profile)
+        service?.startStreamingSession(resultCode, data, profile)
     }
 
     fun stopStream() {
         service?.stopStream()
     }
 
-    fun setIntentResult(resultCode: Int, data: Intent) {
-        service?.setIntentResult(resultCode, data)
-    }
-
     fun getScreenCaptureIntent(): Intent? = service?.getScreenCaptureIntent()
+
+    fun urlValidationError(profile: StreamProfile): String? {
+        val conn = profile.connection
+        return when (conn.protocol) {
+            com.castIRL.data.model.Protocol.RTMP -> when {
+                conn.rtmpUrl.isBlank() || conn.rtmpUrl == "rtmp://" -> "Set RTMP URL in settings"
+                conn.rtmpStreamKey.isBlank() -> "Set stream key in settings"
+                else -> null
+            }
+            com.castIRL.data.model.Protocol.SRT -> when {
+                conn.srtUrl.isBlank() || conn.srtUrl == "srt://" -> "Set SRT host URL in settings"
+                else -> null
+            }
+        }
+    }
 
     override fun onCleared() {
         super.onCleared()

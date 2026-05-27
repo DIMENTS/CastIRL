@@ -1,4 +1,4 @@
-package com.signalscreencaster.di
+package com.castIRL.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore

@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui.theme
+package com.castIRL.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

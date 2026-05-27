@@ -1,4 +1,4 @@
-package com.signalscreencaster.data.datastore
+package com.castIRL.data.datastore
 
 import androidx.datastore.preferences.core.stringPreferencesKey
 

@@ -1,4 +1,4 @@
-package com.signalscreencaster.data.model
+package com.castIRL.data.model
 
 import kotlinx.serialization.Serializable
 import java.util.UUID
@@ -21,7 +21,8 @@ data class ConnectionConfig(
     val rtmpUser: String = "",
     val rtmpPassword: String = "",
     val srtUrl: String = "srt://",
-    val srtLatencyUs: Int = 120_000,
+    val srtStreamId: String = "",
+    val srtLatencyMs: Int = 120,
     val srtPassphrase: String = "",
     val srtPbkeylen: Int = 128
 )
@@ -29,8 +30,9 @@ data class ConnectionConfig(
 @Serializable
 data class VideoConfig(
     val codec: VideoCodecPref = VideoCodecPref.H264,
-    val width: Int = 1280,
-    val height: Int = 720,
+    val useNativeResolution: Boolean = true,
+    val width: Int = 720,
+    val height: Int = 1280,
     val fps: Int = 30,
     val bitrateBps: Int = 4_000_000,
     val keyframeIntervalS: Int = 2,

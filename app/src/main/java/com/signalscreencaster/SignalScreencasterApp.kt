@@ -1,7 +1,7 @@
-package com.signalscreencaster
+package com.castIRL
 
 import android.app.Application
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
-class SignalScreencasterApp : Application()
+class CastIRLApp : Application()

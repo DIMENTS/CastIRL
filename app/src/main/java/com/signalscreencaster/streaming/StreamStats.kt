@@ -1,4 +1,4 @@
-package com.signalscreencaster.streaming
+package com.castIRL.streaming
 
 data class StreamStats(
     val bitrateBps: Long = 0L,

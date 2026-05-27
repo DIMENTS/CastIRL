@@ -1,6 +1,8 @@
-package com.signalscreencaster.service
+package com.castIRL.service
 
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.media.MediaCodecInfo
 import android.os.Binder
 import android.os.Build
@@ -8,15 +10,15 @@ import android.os.IBinder
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.pedro.common.ConnectChecker
-import com.pedro.encoder.utils.CodecUtil
+import com.pedro.common.VideoCodec
 import com.pedro.library.generic.GenericDisplay
-import com.signalscreencaster.data.model.AudioSourcePref
-import com.signalscreencaster.data.model.Protocol
-import com.signalscreencaster.data.model.StreamProfile
-import com.signalscreencaster.data.model.VideoCodecPref
-import com.signalscreencaster.streaming.ConnectionState
-import com.signalscreencaster.streaming.StreamStats
-import com.signalscreencaster.util.SrtUrlBuilder
+import com.castIRL.data.model.AudioSourcePref
+import com.castIRL.data.model.Protocol
+import com.castIRL.data.model.StreamProfile
+import com.castIRL.data.model.VideoCodecPref
+import com.castIRL.streaming.ConnectionState
+import com.castIRL.streaming.StreamStats
+import com.castIRL.util.SrtUrlBuilder
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -61,16 +63,35 @@ class StreamingService : LifecycleService(), ConnectChecker {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        if (intent?.action == StreamNotificationManager.ACTION_STOP) {
-            stopStream()
-            stopSelf()
-            return START_NOT_STICKY
+        when (intent?.action) {
+            StreamNotificationManager.ACTION_STOP -> {
+                stopStream()
+                stopSelf()
+                return START_NOT_STICKY
+            }
+            null -> {
+                // System restarted the service after kill — re-establish foreground.
+                startForegroundCompat()
+            }
+            // Normal start: startForeground is called from startStreamingSession()
+            // after the user has granted MediaProjection consent (API 34 requirement).
         }
-        startForeground(
-            StreamNotificationManager.NOTIFICATION_ID,
-            notificationManager.buildNotification(ConnectionState.Idle, 0L)
-        )
         return START_STICKY
+    }
+
+    private fun startForegroundCompat() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            startForeground(
+                StreamNotificationManager.NOTIFICATION_ID,
+                notificationManager.buildNotification(_connectionState.value, _stats.value.bitrateBps),
+                ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
+            )
+        } else {
+            startForeground(
+                StreamNotificationManager.NOTIFICATION_ID,
+                notificationManager.buildNotification(_connectionState.value, _stats.value.bitrateBps)
+            )
+        }
     }
 
     override fun onBind(intent: Intent): IBinder {
@@ -82,8 +103,23 @@ class StreamingService : LifecycleService(), ConnectChecker {
 
     fun getScreenCaptureIntent(): Intent = display.sendIntent()
 
-    fun setIntentResult(resultCode: Int, data: Intent) {
-        display.setIntentResult(resultCode, data)
+    /**
+     * Called after the user grants MediaProjection consent (RESULT_OK from the capture intent).
+     * Calls startForeground with the correct type AFTER consent — required on API 34+.
+     */
+    fun startStreamingSession(resultCode: Int, data: Intent, profile: StreamProfile) {
+        try {
+            display.setIntentResult(resultCode, data)
+        } catch (e: Exception) {
+            // Happens on Android 14+ when the user picks "single app" instead of
+            // "entire screen" in the MediaProjection chooser. Only full-screen is supported.
+            _connectionState.value = ConnectionState.Error(
+                "Select \"Entire screen\" in the screen share dialog — single-app mode is not supported"
+            )
+            return
+        }
+        startForegroundCompat()
+        startStream(profile)
     }
 
     fun startStream(profile: StreamProfile) {
@@ -94,35 +130,45 @@ class StreamingService : LifecycleService(), ConnectChecker {
         val audioConfig = profile.audio
         val connConfig  = profile.connection
 
-        display.setVideoCodec(
-            when (videoConfig.codec) {
-                VideoCodecPref.H264 -> CodecUtil.VideoCodec.H264
-                VideoCodecPref.H265 -> CodecUtil.VideoCodec.H265
-                VideoCodecPref.AV1  -> CodecUtil.VideoCodec.AV1
-            }
-        )
-
-        if (videoConfig.hardwareEncoding) {
-            display.forceCodecType(CodecUtil.CodecType.HARDWARE, CodecUtil.CodecType.HARDWARE)
+        try {
+            display.setVideoCodec(
+                when (videoConfig.codec) {
+                    VideoCodecPref.H264 -> VideoCodec.H264
+                    VideoCodecPref.H265 -> VideoCodec.H265
+                    VideoCodecPref.AV1  -> VideoCodec.AV1
+                }
+            )
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("Codec not supported: ${videoConfig.codec.name}")
+            return
         }
 
-        val dpi = resources.displayMetrics.densityDpi
+        val dm = resources.displayMetrics
+        val dpi = dm.densityDpi
+        val encWidth  = if (videoConfig.useNativeResolution) dm.widthPixels.roundToEven()
+                        else videoConfig.width
+        val encHeight = if (videoConfig.useNativeResolution) dm.heightPixels.roundToEven()
+                        else videoConfig.height
 
-        val videoOk = display.prepareVideo(
-            videoConfig.width,
-            videoConfig.height,
-            videoConfig.fps,
-            videoConfig.bitrateBps,
-            0, // rotation
-            dpi,
-            videoConfig.keyframeIntervalS
-        )
+        val videoOk = try {
+            display.prepareVideo(
+                encWidth,
+                encHeight,
+                videoConfig.fps,
+                videoConfig.bitrateBps,
+                0, // rotation
+                dpi,
+                MediaCodecInfo.CodecProfileLevel.AVCProfileHigh,
+                MediaCodecInfo.CodecProfileLevel.AVCLevel31,
+                videoConfig.keyframeIntervalS
+            )
+        } catch (e: Exception) {
+            _connectionState.value = ConnectionState.Error("Video encoder init failed")
+            return
+        }
 
         val audioOk = when (audioConfig.source) {
-            AudioSourcePref.NONE -> {
-                display.getStreamClient().setOnlyVideo(true)
-                true
-            }
+            AudioSourcePref.NONE -> true
             AudioSourcePref.MICROPHONE -> display.prepareAudio(
                 audioConfig.bitrateBps,
                 audioConfig.sampleRate,
@@ -139,7 +185,6 @@ class StreamingService : LifecycleService(), ConnectChecker {
                     audioConfig.noiseSuppressor
                 )
             } else {
-                // System audio not available on API < 29 — fall back to mic
                 display.prepareAudio(
                     audioConfig.bitrateBps,
                     audioConfig.sampleRate,
@@ -149,7 +194,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
                 )
             }
             AudioSourcePref.BOTH -> {
-                // Custom AudioMixer not yet implemented — falls back to mic
+                // Falls back to mic — full mixer is a future feature
                 display.prepareAudio(
                     audioConfig.bitrateBps,
                     audioConfig.sampleRate,
@@ -182,7 +227,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
 
     fun stopStream() {
         statsJob?.cancel()
-        if (display.isStreaming) display.stopStream()
+        try { display.stopStream() } catch (_: Exception) {}
         _connectionState.value = ConnectionState.Idle
         _stats.value = StreamStats()
         notificationManager.update(ConnectionState.Idle, 0L)
@@ -197,22 +242,23 @@ class StreamingService : LifecycleService(), ConnectChecker {
     private fun startStatsPolling() {
         statsJob?.cancel()
         statsJob = lifecycleScope.launch {
-            while (isActive && display.isStreaming) {
+            while (isActive) {
                 delay(1_000)
+                if (_connectionState.value !is ConnectionState.Connected &&
+                    _connectionState.value !is ConnectionState.Connecting) break
                 val client = display.getStreamClient()
                 _stats.value = _stats.value.copy(
-                    sentFrames    = client.getSentVideoFrames(),
-                    droppedFrames = client.getDroppedVideoFrames(),
+                    sentFrames    = client.getSentVideoFrames().toInt(),
+                    droppedFrames = client.getDroppedVideoFrames().toInt(),
                     bytesSent     = client.getBytesSend(),
-                    durationMs    = System.currentTimeMillis() - streamStartTimeMs,
-                    hasCongestion = client.hasCongestion()
+                    durationMs    = System.currentTimeMillis() - streamStartTimeMs
                 )
                 notificationManager.update(_connectionState.value, _stats.value.bitrateBps)
             }
         }
     }
 
-    // --- ConnectChecker callbacks (called on background thread — StateFlow.value is thread-safe) ---
+    // --- ConnectChecker (called on background thread — StateFlow.value is thread-safe) ---
 
     override fun onConnectionStarted(url: String) {
         _connectionState.value = ConnectionState.Connecting
@@ -258,7 +304,9 @@ class StreamingService : LifecycleService(), ConnectChecker {
 
     override fun onDestroy() {
         statsJob?.cancel()
-        if (display.isStreaming) display.stopStream()
+        try { display.stopStream() } catch (_: Exception) {}
         super.onDestroy()
     }
 }
+
+private fun Int.roundToEven() = if (this % 2 == 0) this else this - 1

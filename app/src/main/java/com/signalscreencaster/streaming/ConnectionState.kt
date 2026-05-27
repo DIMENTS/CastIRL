@@ -1,4 +1,4 @@
-package com.signalscreencaster.streaming
+package com.castIRL.streaming
 
 sealed interface ConnectionState {
     data object Idle         : ConnectionState

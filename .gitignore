@@ -8,3 +8,11 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Build outputs
+app/build/
+app/release/
+build/
+
+# Claude Code session files
+.claude/

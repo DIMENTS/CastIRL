@@ -1,4 +1,4 @@
-package com.signalscreencaster.service
+package com.castIRL.service
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
@@ -7,10 +7,10 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import androidx.core.app.NotificationCompat
-import com.signalscreencaster.R
-import com.signalscreencaster.streaming.ConnectionState
-import com.signalscreencaster.ui.MainActivity
-import com.signalscreencaster.util.FormatUtil
+import com.castIRL.R
+import com.castIRL.streaming.ConnectionState
+import com.castIRL.ui.MainActivity
+import com.castIRL.util.FormatUtil
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -21,6 +21,7 @@ class StreamNotificationManager @Inject constructor(
 ) {
     companion object {
         const val NOTIFICATION_ID = 1001
+        const val ACTION_STOP     = "com.castIRL.STOP_STREAM"
         private const val CHANNEL_ID = "stream_channel"
     }
 
@@ -40,7 +41,7 @@ class StreamNotificationManager @Inject constructor(
     fun buildNotification(state: ConnectionState, bitrateBps: Long) =
         NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_stream)
-            .setContentTitle("Signal Screencaster")
+            .setContentTitle("CastIRL")
             .setContentText(stateText(state, bitrateBps))
             .setOngoing(true)
             .setContentIntent(launchPendingIntent())
@@ -67,9 +68,5 @@ class StreamNotificationManager @Inject constructor(
     private fun stopPendingIntent(): PendingIntent {
         val intent = Intent(context, StreamingService::class.java).apply { action = ACTION_STOP }
         return PendingIntent.getService(context, 0, intent, PendingIntent.FLAG_IMMUTABLE)
-    }
-
-    companion object {
-        const val ACTION_STOP = "com.signalscreencaster.STOP_STREAM"
     }
 }

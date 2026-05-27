@@ -1,4 +1,4 @@
-package com.signalscreencaster.ui.profiles
+package com.castIRL.ui.profiles
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -36,8 +36,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.signalscreencaster.data.model.Protocol
-import com.signalscreencaster.data.model.StreamProfile
+import com.castIRL.data.model.Protocol
+import com.castIRL.data.model.StreamProfile
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

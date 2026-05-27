@@ -15,5 +15,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Signal Screencaster"
+rootProject.name = "CastIRL"
 include(":app")
