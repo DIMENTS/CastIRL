@@ -7,7 +7,7 @@ import androidx.activity.enableEdgeToEdge
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.castIRL.ui.navigation.AppNavGraph
-import com.castIRL.ui.theme.SignalTheme
+import com.castIRL.ui.theme.CastIRLTheme
 import dagger.hilt.android.AndroidEntryPoint
 
 @AndroidEntryPoint
@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            SignalTheme {
+            CastIRLTheme {
                 val navController = rememberNavController()
                 AppNavGraph(navController = navController)
             }

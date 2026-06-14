@@ -13,6 +13,7 @@ local.properties
 app/build/
 app/release/
 build/
+.kotlin/
 
 # Claude Code session files
 .claude/

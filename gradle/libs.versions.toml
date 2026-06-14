@@ -11,7 +11,7 @@ datastore          = "1.1.1"
 coroutines         = "1.9.0"
 core-ktx           = "1.15.0"
 serialization-json = "1.9.0"
-material3          = "1.4.0"
+material3          = "1.4.0-alpha14"
 rootencoder        = "2.7.0"
 
 [libraries]
@@ -21,7 +21,6 @@ compose-ui                     = { group = "androidx.compose.ui", name = "ui" }
 compose-ui-tooling-preview     = { group = "androidx.compose.ui", name = "ui-tooling-preview" }
 compose-ui-tooling             = { group = "androidx.compose.ui", name = "ui-tooling" }
 compose-material3              = { group = "androidx.compose.material3", name = "material3",    version.ref = "material3" }
-compose-material-icons-extended = { group = "androidx.compose.material", name = "material-icons-extended" }
 
 # Activity + Lifecycle
 activity-compose               = { group = "androidx.activity",   name = "activity-compose",             version.ref = "activity-compose" }

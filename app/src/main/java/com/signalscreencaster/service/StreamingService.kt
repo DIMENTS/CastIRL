@@ -1,12 +1,14 @@
 package com.castIRL.service
 
 import android.app.Activity
+import android.content.Context
 import android.content.Intent
 import android.content.pm.ServiceInfo
 import android.media.MediaCodecInfo
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.pedro.common.ConnectChecker
@@ -53,8 +55,15 @@ class StreamingService : LifecycleService(), ConnectChecker {
 
     private val binder = LocalBinder()
 
+    private lateinit var wakeLock: PowerManager.WakeLock
+
     override fun onCreate() {
         super.onCreate()
+        val pm = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = pm.newWakeLock(
+            PowerManager.PARTIAL_WAKE_LOCK,
+            "CastIRL:StreamingWakeLock"
+        )
         display = GenericDisplay(this, false, this)
         display.setFpsListener { fps ->
             _stats.value = _stats.value.copy(fps = fps.toInt())
@@ -222,12 +231,14 @@ class StreamingService : LifecycleService(), ConnectChecker {
         streamStartTimeMs = System.currentTimeMillis()
         _connectionState.value = ConnectionState.Connecting
         display.startStream(url)
+        if (!wakeLock.isHeld) wakeLock.acquire()
         startStatsPolling()
     }
 
     fun stopStream() {
         statsJob?.cancel()
         try { display.stopStream() } catch (_: Exception) {}
+        if (wakeLock.isHeld) wakeLock.release()
         _connectionState.value = ConnectionState.Idle
         _stats.value = StreamStats()
         notificationManager.update(ConnectionState.Idle, 0L)
@@ -305,6 +316,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
     override fun onDestroy() {
         statsJob?.cancel()
         try { display.stopStream() } catch (_: Exception) {}
+        if (::wakeLock.isInitialized && wakeLock.isHeld) wakeLock.release()
         super.onDestroy()
     }
 }
