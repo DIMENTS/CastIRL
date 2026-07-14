@@ -46,6 +46,16 @@ private data class ChangelogEntry(
 
 private val CHANGELOG = listOf(
     ChangelogEntry(
+        version = "1.2.0",
+        date    = "June 2026",
+        items   = listOf(
+            "Live stream status in the notification — bitrate and total data sent, updating in real time",
+            "Media-style pill in the notification shade and Now Bar with a one-tap stop",
+            "Data-sent counter that switches from MB to GB automatically",
+            "Android 16 Live Updates chip on supported devices",
+        ),
+    ),
+    ChangelogEntry(
         version = "1.1.0",
         date    = "June 2026",
         items   = listOf(

@@ -92,13 +92,13 @@ class StreamingService : LifecycleService(), ConnectChecker {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
                 StreamNotificationManager.NOTIFICATION_ID,
-                notificationManager.buildNotification(_connectionState.value, _stats.value.bitrateBps),
+                notificationManager.buildNotification(_connectionState.value, _stats.value),
                 ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION
             )
         } else {
             startForeground(
                 StreamNotificationManager.NOTIFICATION_ID,
-                notificationManager.buildNotification(_connectionState.value, _stats.value.bitrateBps)
+                notificationManager.buildNotification(_connectionState.value, _stats.value)
             )
         }
     }
@@ -241,7 +241,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
         if (wakeLock.isHeld) wakeLock.release()
         _connectionState.value = ConnectionState.Idle
         _stats.value = StreamStats()
-        notificationManager.update(ConnectionState.Idle, 0L)
+        notificationManager.update(ConnectionState.Idle, StreamStats())
     }
 
     fun setVideoBitrateOnFly(bitrateBps: Int) {
@@ -264,7 +264,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
                     bytesSent     = client.getBytesSend(),
                     durationMs    = System.currentTimeMillis() - streamStartTimeMs
                 )
-                notificationManager.update(_connectionState.value, _stats.value.bitrateBps)
+                notificationManager.update(_connectionState.value, _stats.value)
             }
         }
     }
@@ -278,31 +278,39 @@ class StreamingService : LifecycleService(), ConnectChecker {
     override fun onConnectionSuccess() {
         reconnectAttempts = 0
         _connectionState.value = ConnectionState.Connected
+        notificationManager.update(ConnectionState.Connected, _stats.value)
     }
 
     override fun onConnectionFailed(reason: String) {
         val profile = currentProfile ?: run {
             _connectionState.value = ConnectionState.Error(reason)
+            notificationManager.update(ConnectionState.Error(reason), _stats.value)
             return
         }
         val behavior = profile.behavior
         if (behavior.reconnectOnDisconnect && reconnectAttempts < behavior.maxReconnectAttempts) {
             reconnectAttempts++
             val retried = display.getStreamClient().reTry(behavior.reconnectDelayMs, reason, null)
-            if (!retried) _connectionState.value = ConnectionState.Error(reason)
+            if (!retried) {
+                _connectionState.value = ConnectionState.Error(reason)
+                notificationManager.update(ConnectionState.Error(reason), _stats.value)
+            }
         } else {
             statsJob?.cancel()
             _connectionState.value = ConnectionState.Error(reason)
+            notificationManager.update(ConnectionState.Error(reason), _stats.value)
         }
     }
 
     override fun onDisconnect() {
         statsJob?.cancel()
         _connectionState.value = ConnectionState.Disconnected
+        notificationManager.update(ConnectionState.Disconnected, _stats.value)
     }
 
     override fun onAuthError() {
         _connectionState.value = ConnectionState.Error("Authentication failed")
+        notificationManager.update(ConnectionState.Error("Authentication failed"), _stats.value)
     }
 
     override fun onAuthSuccess() {
@@ -317,6 +325,7 @@ class StreamingService : LifecycleService(), ConnectChecker {
         statsJob?.cancel()
         try { display.stopStream() } catch (_: Exception) {}
         if (::wakeLock.isInitialized && wakeLock.isHeld) wakeLock.release()
+        notificationManager.release()
         super.onDestroy()
     }
 }

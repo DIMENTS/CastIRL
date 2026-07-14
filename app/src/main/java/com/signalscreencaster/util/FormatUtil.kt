@@ -21,4 +21,10 @@ object FormatUtil {
         bytes >= 1_024L         -> "%.0f KB".format(bytes / 1_024.0)
         else                    -> "$bytes B"
     }
+
+    /** Data-sent readout for the stream: starts in MB, switches to GB past 1 GB. */
+    fun formatDataUsage(bytes: Long): String = when {
+        bytes >= 1_073_741_824L -> "%.2f GB".format(bytes / 1_073_741_824.0)
+        else                    -> "%.1f MB".format(bytes / 1_048_576.0)
+    }
 }

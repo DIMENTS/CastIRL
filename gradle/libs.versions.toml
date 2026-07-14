@@ -1,5 +1,5 @@
 [versions]
-agp                = "8.6.1"
+agp                = "8.9.1"
 kotlin             = "2.0.21"
 ksp                = "2.0.21-1.0.27"
 hilt               = "2.57"
@@ -9,7 +9,7 @@ lifecycle          = "2.8.7"
 navigation-compose = "2.8.5"
 datastore          = "1.1.1"
 coroutines         = "1.9.0"
-core-ktx           = "1.15.0"
+core-ktx           = "1.17.0"
 serialization-json = "1.9.0"
 material3          = "1.4.0-alpha14"
 rootencoder        = "2.7.0"
@@ -48,6 +48,9 @@ kotlinx-serialization-json     = { group = "org.jetbrains.kotlinx", name = "kotl
 # Core
 core-ktx                       = { group = "androidx.core",       name = "core-ktx",            version.ref = "core-ktx" }
 core-splashscreen              = { group = "androidx.core",       name = "core-splashscreen",   version = "1.0.1" }
+
+# Media (MediaSession + MediaStyle notification)
+androidx-media                 = { group = "androidx.media",      name = "media",               version = "1.7.0" }
 
 # RootEncoder
 rootencoder-library            = { group = "com.github.pedroSG94.RootEncoder", name = "library", version.ref = "rootencoder" }
